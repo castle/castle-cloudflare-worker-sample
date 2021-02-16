@@ -1,8 +1,26 @@
-const CASTLE_AUTHENTICATE_API_URL = `https://api.castle.io/v1/authenticate`;
-const CASTLE_AUTH_HEADERS = {
-  Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
-  'Content-Type': 'application/json',
-};
+// Modify the routes according to your use case
+const routes = [
+  {
+    // Castle event
+    event: '$registration',
+    // function to be executed if the route is matched
+    handler: authenticate,
+    // HTTP method of the matched request
+    method: 'POST',
+    // pathname of the matched request
+    pathname: '/users/sign_up',
+  },
+];
+
+/**
+ * Return object containing Castle Auth Headers
+ */
+function generateCastleAuthHeaders() {
+  return {
+    Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
+    'Content-Type': 'application/json',
+  };
+}
 
 /**
  * Return the castle_token fetched from form data
@@ -34,26 +52,20 @@ async function authenticate(event, request) {
 
   const requestOptions = {
     method: 'POST',
-    headers: CASTLE_AUTH_HEADERS,
+    headers: generateCastleAuthHeaders(),
     body: requestBody,
   };
   let response;
   try {
-    response = await fetch(CASTLE_AUTHENTICATE_API_URL, requestOptions);
+    response = await fetch(
+      'https://api.castle.io/v1/authenticate',
+      requestOptions
+    );
   } catch (err) {
     console.log(err);
   }
   return response;
 }
-
-const routes = [
-  {
-    event: '$registration',
-    handler: authenticate,
-    method: 'POST',
-    pathname: '/users/sign_up',
-  },
-];
 
 /**
  * Return matched action or undefined
@@ -72,12 +84,12 @@ async function processRequest(request) {
 }
 
 /**
- * Respond with hello worker text
+ * Process the received request
  * @param {Request} request
  */
 async function handleRequest(request) {
   if (!CASTLE_API_SECRET) {
-    throw new Error('CASTLE_API_SECRET secret not provided');
+    throw new Error('CASTLE_API_SECRET not provided');
   }
 
   const result = await processRequest(request);
