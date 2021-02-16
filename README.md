@@ -12,18 +12,24 @@
 
 ## Installation
 
-1. Press the `Deploy with Workers` button and follow the instructions:
+Press the `Deploy with Workers` button. You will be redirected to a dedicated deployment page.
 
   [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/castle/castle-cloudflare-worker-demo)
 
-2. Check if `castle-cloudflare-worker-demo` repository is forked to your organization. At this step, Github build should fail
+### Installation steps
 
-3. Navigate to `Settings > Secrets` tab of the forked repository
+1. Authorize GitHub with Workers
 
-4. Update `Repository Secrets`:
+    Authorization allows to fork the project from Github and deploy it after finishing the setup.
 
-    * Add `CF_ACCOUNT_ID` (Cloudflare Account ID) and `CF_API_TOKEN` (Cloudflare API Token with "Edit Workers" permissions) to Github actions secrets
+2. Configure Cloudflare Account
 
-    * Add Castle API secret, available in [Castle Dashboard](https://dashboard.castle.io/settings/general) as `CASTLE_API_SECRET` to Github actions secrets
+    Add Cloudflare Account ID (`CF_ACCOUNT_ID`) and Cloudflare API Token with "Edit Workers" permissions (`CF_API_TOKEN`). They will be auto-uploaded as Github actions secrets.
 
-5. Re-run Github build
+    After this step, `castle-cloudflare-worker-demo` repository should be forked to your organization.
+
+3. Deploy with GitHub Actions
+
+    Navigate to `Settings > Secrets` tab of the forked repository. Update `Repository Secrets` — add Castle API secret, available in [Castle Dashboard](https://dashboard.castle.io/settings/general) as `CASTLE_API_SECRET` to Github actions secrets.
+
+    Now you can finalize the deployment by pressing the `Deploy` button.
