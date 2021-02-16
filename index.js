@@ -18,6 +18,23 @@ const castleAuthHeaders = {
 };
 
 /**
+ * Return prefiltered request headers
+ * @param {Headers} request headers
+ */
+function scrubHeaders(headers) {
+  const headersObject = Object.fromEntries(headers);
+  return Object.keys(headersObject).reduce((accumulator, headerKey) => {
+    const isScrubbed = ['cookie', 'authorization'].includes(
+      headerKey.toLowerCase()
+    );
+    return {
+      ...accumulator,
+      [headerKey]: isScrubbed ? true : headersObject[headerKey],
+    };
+  }, {});
+}
+
+/**
  * Return the castle_token fetched from form data
  * @param {Request} request
  */
@@ -42,6 +59,7 @@ async function authenticate(event, request) {
       client_id: clientId,
       ip: request.headers.get('CF-Connecting-IP'),
       user_agent: request.headers.get('User-Agent'),
+      headers: scrubHeaders(request.headers),
     },
   });
 
