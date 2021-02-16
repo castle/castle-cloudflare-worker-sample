@@ -22,7 +22,7 @@ const castleAuthHeaders = {
  * @param {Headers} requestHeaders
  * @param {string[]} scrubbedHeaders
  */
-function scrubHeaders(requestHeaders, scrubbedHeaders = ['cookie', 'authorization']) {
+function scrubHeaders(requestHeaders, scrubbedHeaders) {
   const headersObject = Object.fromEntries(requestHeaders);
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
     const isScrubbed = scrubbedHeaders.includes(
@@ -60,7 +60,7 @@ async function authenticate(event, request) {
       client_id: clientId,
       ip: request.headers.get('CF-Connecting-IP'),
       user_agent: request.headers.get('User-Agent'),
-      headers: scrubHeaders(request.headers),
+      headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
     },
   });
 
