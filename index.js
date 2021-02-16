@@ -12,15 +12,10 @@ const routes = [
   },
 ];
 
-/**
- * Return object containing Castle Auth Headers
- */
-function generateCastleAuthHeaders() {
-  return {
-    Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
-    'Content-Type': 'application/json',
-  };
-}
+const castleAuthHeaders = {
+  Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
+  'Content-Type': 'application/json',
+};
 
 /**
  * Return the castle_token fetched from form data
@@ -52,7 +47,7 @@ async function authenticate(event, request) {
 
   const requestOptions = {
     method: 'POST',
-    headers: generateCastleAuthHeaders(),
+    headers: castleAuthHeaders,
     body: requestBody,
   };
   let response;
