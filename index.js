@@ -19,12 +19,13 @@ const castleAuthHeaders = {
 
 /**
  * Return prefiltered request headers
- * @param {Headers} request headers
+ * @param {Headers} requestHeaders
+ * @param {string[]} scrubbedHeaders
  */
-function scrubHeaders(headers) {
-  const headersObject = Object.fromEntries(headers);
+function scrubHeaders(requestHeaders, scrubbedHeaders = ['cookie', 'authorization']) {
+  const headersObject = Object.fromEntries(requestHeaders);
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
-    const isScrubbed = ['cookie', 'authorization'].includes(
+    const isScrubbed = scrubbedHeaders.includes(
       headerKey.toLowerCase()
     );
     return {
