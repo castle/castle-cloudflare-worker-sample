@@ -12,6 +12,8 @@ const routes = [
   },
 ];
 
+const riskThreshold = 0.9;
+
 const castleAuthHeaders = {
   Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
   'Content-Type': 'application/json',
@@ -89,11 +91,15 @@ async function handleRequest(request) {
 
   const result = await processRequest(request);
 
-  if (result && result.risk > 0.9) {
+  if (result && result.risk > riskThreshold) {
     return new Response('Blocked!', { status: 403 });
   }
 
-  return fetch(request);
+  // dev
+  return new Response('OK!', { status: 200 });
+
+  // prod
+  // return fetch(request);
 }
 
 addEventListener('fetch', (event) => {
