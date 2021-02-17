@@ -21,7 +21,7 @@ Once you've installed the worker with the default settings, the worker will list
 
 route.
 
-The POST must include a Castle client_id. Click here to learn more about how to include a Castle client_id in a POST.
+The POST must include a Castle client_id. Click [here](https://docs.castle.io/preauth/) to learn more about how to include a Castle client_id in a POST.
 
 When the worker receives the POST, it will in turn make a POST to Castle, and receive a risk score in return. If the risk score is above the `riskThreshold`, then the worker will respond with a 403. If the risk score is below the `riskThreshold`, the worker will respond with a 200.
 
@@ -39,7 +39,7 @@ If you don't have a Castle account already, you can [set up a free trial](https:
 
 ### Cloudflare
 
-If you're going to use the `Deploy with Workers` option (see below), you'll need your Cloudflare account ID and an API Token. (This integration has been tested with a Cloudflare API Token created with the Cloudflare "Edit Worker" token template.)
+If you're going to use the `Deploy with Workers` option (see below), you'll need your Cloudflare account ID and an API Token.
 
 ## Installation
 
@@ -51,9 +51,9 @@ There are two options for installing this worker, a "manual" method and a `Deplo
 
 2. Add an Environment Variable to your worker:
 
-`CASTLE_API_SECRET` 
+`CASTLE_API_SECRET`
 
-and assign your Castle API Key to this variable.
+and assign your Castle API Key to this variable. You can retrieve your `CASTLE_API_SECRET` from [the settings section of your Castle dashboard](https://dashboard.castle.io/settings/general).
 
 3. Copy and paste the contents of the `index.js` file in this repo to your Worker.
 
