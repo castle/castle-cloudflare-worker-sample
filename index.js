@@ -25,9 +25,7 @@ const castleAuthHeaders = {
 function scrubHeaders(requestHeaders, scrubbedHeaders) {
   const headersObject = Object.fromEntries(requestHeaders);
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
-    const isScrubbed = scrubbedHeaders.includes(
-      headerKey.toLowerCase()
-    );
+    const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
       ...accumulator,
       [headerKey]: isScrubbed ? true : headersObject[headerKey],
@@ -41,9 +39,18 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
  */
 async function getCastleTokenFromRequest(request) {
   const clonedRequest = await request.clone();
-  const formData = await clonedRequest.formData();
-  if (formData) {
-    return formData.get('castle_token');
+  const contentType = request.headers.get('content-type') || '';
+  if (contentType.includes('form')) {
+    const formData = await clonedRequest.formData();
+    if (formData) {
+      return formData.get('castle_token');
+    }
+  }
+  if (contentType.includes('application/json')) {
+    const jsonData = await request.json();
+    if (jsonData) {
+      return jsonData.castle_token;
+    }
   }
 }
 
