@@ -1,3 +1,5 @@
+let CASTLE_API_SECRET, CASTLE_APP_ID;
+
 // Modify the routes according to your use case
 const routes = [
   {
