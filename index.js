@@ -159,17 +159,17 @@ async function handleRequest(request) {
     });
   }
 
-  const result = await processRequest(request);
-  const resultAsJSON = await result.json();
-  const resultStringified = JSON.stringify(resultAsJSON);
+  const castleResponse = await processRequest(request);
+  const castleResponseJSON = await castleResponse.json();
+  const castleResponseJSONString = JSON.stringify(castleResponseJSON);
 
-  if (resultAsJSON && resultAsJSON.risk > castleConfig.riskThreshold) {
-    return new Response(resultStringified, { status: 403 });
+  if (castleResponseJSON && castleResponseJSON.risk > castleConfig.riskThreshold) {
+    return new Response(castleResponseJSONString, { status: 403 });
   }
 
   // Respond with result fetched from Castle API or fetch the request
   // return fetch(request);
-  return new Response(resultStringified, { status: 200 });
+  return new Response(castleResponseJSONString, { status: 200 });
 }
 
 addEventListener('fetch', (event) => {
