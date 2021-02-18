@@ -15,13 +15,14 @@ const routes = [
 const castleConfig = {
   riskThreshold: 0.9,
   url: 'https://api.castle.io/v1/authenticate?include=risk',
+  scriptURL: `https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}`
 };
 
 const html = `
 <html>
 <head>
   <link rel="icon" href="data:,">
-  <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
+  <script src="${castleConfig.scriptURL}"></script>
 
   <script>
   window.onload = function() {
