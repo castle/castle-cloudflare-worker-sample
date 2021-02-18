@@ -1,5 +1,3 @@
-let CASTLE_API_SECRET, CASTLE_APP_ID;
-
 // Modify the routes according to your use case
 const routes = [
   {
@@ -16,54 +14,58 @@ const routes = [
 
 const castleConfig = {
   riskThreshold: 0.9,
-  url: 'https://api.castle.io/v1/authenticate?include=risk',
-  scriptURL: `https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}`
+  url: 'https://api.castle.io/v1/authenticate?include=risk'
 };
-
-const html = `
-<html>
-<head>
-  <link rel="icon" href="data:,">
-  <script src="${castleConfig.scriptURL}"></script>
-
-  <script>
-  window.onload = function() {
-    var form = document.getElementById('registration-form');
-
-    form.addEventListener("submit", function(evt) {
-      evt.preventDefault();
-
-      // Get the ClientID token
-      var clientId = _castle('getClientId');
-
-      // Populate a hidden <input> field named "castle_client_id"
-      var hiddenInput = document.createElement('input');
-      hiddenInput.setAttribute('type', 'hidden');
-      hiddenInput.setAttribute('name', 'castle_client_id');
-      hiddenInput.setAttribute('value', clientId);
-
-      // Add the "castle_client_id" to the HTML form
-      form.appendChild(hiddenInput);
-
-      form.submit()
-    });
-  }
-  </script>
-</head>
-
-<body>
-  <form action = "/users/sign_up" method="POST" id="registration-form">
-    <label for = "username">username</label>
-    <input type = "text" name = "username"><br><br>
-    <input type = "submit" value = "submit">
-</body>
-</html>
-`;
 
 const castleAuthHeaders = {
   Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
   'Content-Type': 'application/json',
 };
+
+/**
+ * Generate HTML response
+ */
+function generateHTMLResponse() {
+  return `
+  <html>
+    <head>
+      <link rel="icon" href="data:,">
+      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
+
+      <script>
+        window.onload = function() {
+          var form = document.getElementById('registration-form');
+
+          form.addEventListener("submit", function(evt) {
+            evt.preventDefault();
+
+            // Get the ClientID token
+            var clientId = _castle('getClientId');
+
+            // Populate a hidden <input> field named "castle_client_id"
+            var hiddenInput = document.createElement('input');
+            hiddenInput.setAttribute('type', 'hidden');
+            hiddenInput.setAttribute('name', 'castle_client_id');
+            hiddenInput.setAttribute('value', clientId);
+
+            // Add the "castle_client_id" to the HTML form
+            form.appendChild(hiddenInput);
+
+            form.submit()
+          });
+        }
+      </script>
+    </head>
+
+  <body>
+    <form action = "/users/sign_up" method="POST" id="registration-form">
+      <label for = "username">username</label>
+      <input type = "text" name = "username"><br><br>
+      <input type = "submit" value = "submit">
+  </body>
+  </html>
+`;
+}
 
 /**
  * Return prefiltered request headers
@@ -155,7 +157,7 @@ async function handleRequest(request) {
     if (!CASTLE_APP_ID) {
       throw new Error('CASTLE_APP_ID not provided');
     }
-    return new Response(html, {
+    return new Response(generateHTMLResponse(), {
       headers: {
         'content-type': 'text/html;charset=UTF-8',
       },
