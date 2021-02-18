@@ -15,13 +15,13 @@
 The Castle Cloudflare Worker allows you to put Castle's risk engine right on the edge, in a Cloudflare worker.
 
 ## How it works
-Once you've installed the worker with the default settings, the worker will listen for POSTs to the 
+Once you've installed the worker with the default settings, the worker will listen for POSTs to the
 
 `/users/sign_up`
 
 route.
 
-The POST must include a Castle client_id. Click [here](https://docs.castle.io/preauth/) to learn more about how to include a Castle client_id in a POST.
+The POST must include a Castle `client_id`. Click [here](https://docs.castle.io/preauth/) to learn more about how to include a Castle `client_id` in a POST.
 
 When the worker receives the POST, it will in turn make a POST to Castle, and receive a risk score in return. If the risk score is above the `riskThreshold`, then the worker will respond with a 403. If the risk score is below the `riskThreshold`, the worker will respond with a 200.
 
@@ -49,11 +49,12 @@ There are two options for installing this worker, a "manual" method and a `Deplo
 
 1. Create or open the Cloudflare worker where you would like to install the Castle worker code.
 
-2. Add an Environment Variable to your worker:
+2. Add two Environment Variables to your worker:
 
-`CASTLE_API_SECRET`
+    * `CASTLE_API_SECRET` — assign your Castle API Key to this variable.
+    * `CASTLE_APP_ID` - assign your Castle App ID to this variable.
 
-and assign your Castle API Key to this variable. You can retrieve your `CASTLE_API_SECRET` from [the settings section of your Castle dashboard](https://dashboard.castle.io/settings/general).
+    You can retrieve your `CASTLE_API_SECRET` and `CASTLE_APP_ID` from [the settings section of your Castle dashboard](https://dashboard.castle.io/settings/general).
 
 3. Copy and paste the contents of the `index.js` file in this repo to your Worker.
 
@@ -79,6 +80,8 @@ Press the `Deploy with Workers` button. You will be redirected to a dedicated de
 
 3. Deploy with GitHub Actions
 
-    Navigate to `Settings > Secrets` tab of the forked repository. Update `Repository Secrets` — add Castle API secret, available in [Castle Dashboard](https://dashboard.castle.io/settings/general) as `CASTLE_API_SECRET` to Github actions secrets.
+    Navigate to `Settings > Secrets` tab of the forked repository.
+
+    Update `Repository Secrets` — add Castle API secret and Castle App ID, available in [Castle Dashboard](https://dashboard.castle.io/settings/general) as `CASTLE_API_SECRET` and `CASTLE_APP_ID` to Github actions secrets.
 
     Now you can finalize the deployment by pressing the `Deploy` button.
