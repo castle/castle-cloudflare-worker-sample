@@ -14,53 +14,69 @@ const routes = [
 
 const castleConfig = {
   riskThreshold: 0.9,
-  url: "https://api.castle.io/v1/authenticate?include=risk"
-}
+  url: 'https://api.castle.io/v1/authenticate?include=risk',
+};
 
 const html = `
 <html>
 <head>
-<script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
+  <link rel="icon" href="data:,">
+  <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
 
-<script>
-window.onload = function() {
-  var form = document.getElementById('registration-form');
+  <script>
+  window.onload = function() {
+    var form = document.getElementById('registration-form');
 
-  form.addEventListener("submit", function(evt) {
-    evt.preventDefault()
+    form.addEventListener("submit", function(evt) {
+      evt.preventDefault();
 
-    // Get the ClientID token
-    var clientId = _castle('getClientId');
+      // Get the ClientID token
+      var clientId = _castle('getClientId');
 
-    // Populate a hidden <input> field named "castle_client_id"
-    var hiddenInput = document.createElement('input');
-    hiddenInput.setAttribute('type', 'hidden');
-    hiddenInput.setAttribute('name', 'castle_client_id');
-    hiddenInput.setAttribute('value', clientId);
+      // Populate a hidden <input> field named "castle_client_id"
+      var hiddenInput = document.createElement('input');
+      hiddenInput.setAttribute('type', 'hidden');
+      hiddenInput.setAttribute('name', 'castle_client_id');
+      hiddenInput.setAttribute('value', clientId);
 
-    // Add the "castle_client_id" to the HTML form
-    form.appendChild(hiddenInput);
+      // Add the "castle_client_id" to the HTML form
+      form.appendChild(hiddenInput);
 
-    form.submit()
-  });
-}
-</script>
+      form.submit()
+    });
+  }
+  </script>
 </head>
 
 <body>
-  <p>please register!</p>
   <form action = "/users/sign_up" method="POST" id="registration-form">
     <label for = "username">username</label>
     <input type = "text" name = "username"><br><br>
     <input type = "submit" value = "submit">
 </body>
 </html>
-`
+`;
 
 const castleAuthHeaders = {
   Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
   'Content-Type': 'application/json',
 };
+
+/**
+ * Return prefiltered request headers
+ * @param {Headers} requestHeaders
+ * @param {string[]} scrubbedHeaders
+ */
+function scrubHeaders(requestHeaders, scrubbedHeaders) {
+  const headersObject = Object.fromEntries(requestHeaders);
+  return Object.keys(headersObject).reduce((accumulator, headerKey) => {
+    const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
+    return {
+      ...accumulator,
+      [headerKey]: isScrubbed ? true : headersObject[headerKey],
+    };
+  }, {});
+}
 
 /**
  * Return the castle_token fetched from form data
@@ -79,19 +95,14 @@ async function getCastleTokenFromRequest(request) {
  * @param {Request} request
  */
 async function authenticate(event, request) {
-
-  console.log("reached the authenticate function.")
-
   const clientId = await getCastleTokenFromRequest(request);
-
-  console.log("the client id is: " + clientId)
 
   const requestBody = JSON.stringify({
     event,
     context: {
       client_id: clientId,
       ip: request.headers.get('CF-Connecting-IP'),
-      user_agent: request.headers.get('User-Agent'),
+      headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
     },
   });
 
@@ -131,48 +142,34 @@ async function processRequest(request) {
  * @param {Request} request
  */
 async function handleRequest(request) {
-
   if (!CASTLE_API_SECRET) {
     throw new Error('CASTLE_API_SECRET not provided');
   }
 
   const requestUrl = new URL(request.url);
 
-  // to prevent annoying 500 errors in dev
-  if (requestUrl.pathname === "/favicon.ico") {
-    return new Response('', { status: 200 });
-  }
-
-  if (requestUrl.pathname === "/") {
+  if (requestUrl.pathname === '/') {
     if (!CASTLE_APP_ID) {
       throw new Error('CASTLE_APP_ID not provided');
     }
     return new Response(html, {
       headers: {
-        "content-type": "text/html;charset=UTF-8",
+        'content-type': 'text/html;charset=UTF-8',
       },
-    })
+    });
   }
 
   const result = await processRequest(request);
+  const resultAsJSON = await result.json();
+  const resultStringified = JSON.stringify(resultAsJSON);
 
-  const r = await result.json()
-
-  const s = JSON.stringify(r)
-
-  console.log("************************")
-
-  console.log(s)
-
-  if (r && r.risk > castleConfig.riskThreshold) {
-    return new Response(s, { status: 403 });
+  if (resultAsJSON && resultAsJSON.risk > castleConfig.riskThreshold) {
+    return new Response(resultStringified, { status: 403 });
   }
 
-  // dev
-  return new Response(s, { status: 200 });
-
-  // prod
+  // Respond with result fetched from Castle API or fetch the request
   // return fetch(request);
+  return new Response(resultStringified, { status: 200 });
 }
 
 addEventListener('fetch', (event) => {
