@@ -87,7 +87,7 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
  * Return the castle_token fetched from form data
  * @param {Request} request
  */
-async function getCastleTokenFromRequest(request) {
+async function getCastleFingerprintFromRequest(request) {
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
   if (formData) {
@@ -100,15 +100,13 @@ async function getCastleTokenFromRequest(request) {
  * @param {Request} request
  */
 async function authenticate(event, request) {
-  const clientId = await getCastleTokenFromRequest(request);
+  const fingerprint = await getCastleFingerprintFromRequest(request);
 
   const requestBody = JSON.stringify({
     event,
-    context: {
-      client_id: clientId,
-      ip: request.headers.get('CF-Connecting-IP'),
-      headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
-    },
+    fingerprint,
+    ip: request.headers.get('CF-Connecting-IP'),
+    headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
   });
 
   const requestOptions = {
