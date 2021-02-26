@@ -14,7 +14,7 @@ const routes = [
 
 const castleConfig = {
   riskThreshold: 0.9,
-  url: 'https://api.castle.io/v1/authenticate?include=risk'
+  url: 'https://api.castle.io/v1/authenticate'
 };
 
 const castleAuthHeaders = {
