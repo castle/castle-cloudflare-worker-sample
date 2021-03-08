@@ -87,7 +87,7 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
  * Return the castle_token fetched from form data
  * @param {Request} request
  */
-async function getCastleFingerprintFromRequest(request) {
+async function getCastleTokenFromRequest(request) {
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
   if (formData) {
@@ -100,7 +100,7 @@ async function getCastleFingerprintFromRequest(request) {
  * @param {Request} request
  */
 async function authenticate(event, request) {
-  const fingerprint = await getCastleFingerprintFromRequest(request);
+  const fingerprint = await getCastleTokenFromRequest(request);
 
   const requestBody = JSON.stringify({
     event,
