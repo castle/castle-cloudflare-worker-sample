@@ -1,3 +1,4 @@
 name = "castle-cloudflare-worker-demo"
 type = "javascript"
 workers_dev = true
+account_id = "d7c67834dc399a8b08e74518d3838608"

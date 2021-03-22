@@ -2,7 +2,7 @@
 const routes = [
   {
     // Castle event
-    event: '$registration',
+    event: '$registration.attempted',
     // function to be executed if the route is matched
     handler: authenticate,
     // HTTP method of the matched request
@@ -14,7 +14,7 @@ const routes = [
 
 const castleConfig = {
   riskThreshold: 0.9,
-  url: 'https://api.castle.io/v1/authenticate?include=risk'
+  url: 'https://api.castle.io/v1/authenticate'
 };
 
 const castleAuthHeaders = {
@@ -90,9 +90,15 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
 async function getCastleTokenFromRequest(request) {
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
+
+  let obj = {}
+
   if (formData) {
-    return formData.get('castle_client_id');
+    obj.castle_client_id = formData.get('castle_client_id');
+    obj.username = formData.get('username');
   }
+
+  return obj
 }
 
 /**
@@ -100,10 +106,17 @@ async function getCastleTokenFromRequest(request) {
  * @param {Request} request
  */
 async function authenticate(event, request) {
-  const clientId = await getCastleTokenFromRequest(request);
+
+  const props = await getCastleTokenFromRequest(request);
+
+  const clientId = props.castle_client_id
+  const username = props.username
 
   const requestBody = JSON.stringify({
     event,
+    user_traits: {
+      email: username
+    },
     context: {
       client_id: clientId,
       ip: request.headers.get('CF-Connecting-IP'),
