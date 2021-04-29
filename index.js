@@ -1,5 +1,5 @@
-const castleApiSecret = globalThis.CASTLE_API_SECRET
-const castleAppId = globalThis.CASTLE_APP_ID
+const castleApiSecret = globalThis.CASTLE_API_SECRET;
+const castleAppId = globalThis.CASTLE_APP_ID;
 
 // Modify the routes according to your use case
 const routes = [
