@@ -2,12 +2,12 @@
   <img align="center" alt="Castle logo" src='./assets/castle-logo.svg' width='150'/>
 </div>
 <div align="center">
-  <h1>Castle Cloudflare Worker Demo</h1>
+  <h1>Castle Cloudflare Worker Sample</h1>
 </div>
 <div align="center">
-  <image alt="Build status" src="https://img.shields.io/github/workflow/status/castle/cloudflare-worker-demo/Build"/>
-  <image alt="Package version" src="https://img.shields.io/github/package-json/v/castle/castle-cloudflare-worker-demo"/>
-  <image alt="License" src="https://img.shields.io/github/license/castle/castle-cloudflare-worker-demo"/>
+  <image alt="Build status" src="https://img.shields.io/github/workflow/status/castle/castle-cloudflare-worker-sample/Build"/>
+  <image alt="Package version" src="https://img.shields.io/github/package-json/v/castle/castle-cloudflare-worker-sample"/>
+  <image alt="License" src="https://img.shields.io/github/license/castle/castle-cloudflare-worker-sample"/>
 </div>
 
 ## Overview
@@ -64,7 +64,7 @@ There are two options for installing this worker, a "manual" method and a `Deplo
 
 Press the `Deploy with Workers` button. You will be redirected to a dedicated deployment page.
 
-  [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/castle/castle-cloudflare-worker-demo)
+  [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/castle/castle-cloudflare-worker-sample)
 
 ### Detailed Installation steps
 
@@ -76,7 +76,7 @@ Press the `Deploy with Workers` button. You will be redirected to a dedicated de
 
     Add Cloudflare Account ID (`CF_ACCOUNT_ID`) and Cloudflare API Token with "Edit Workers" permissions (`CF_API_TOKEN`). They will be auto-uploaded as Github actions secrets.
 
-    After this step, `castle-cloudflare-worker-demo` repository should be forked to your organization.
+    After this step, `castle-cloudflare-worker-sample` repository should be forked to your organization.
 
 3. Deploy with GitHub Actions
 
