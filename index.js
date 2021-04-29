@@ -1,3 +1,6 @@
+const castleApiSecret = globalThis.CASTLE_API_SECRET
+const castleAppId = globalThis.CASTLE_APP_ID
+
 // Modify the routes according to your use case
 const routes = [
   {
@@ -18,7 +21,7 @@ const castleConfig = {
 };
 
 const castleAuthHeaders = {
-  Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
+  Authorization: `Basic ${btoa(`:${castleApiSecret}`)}`,
   'Content-Type': 'application/json',
 };
 
@@ -30,7 +33,7 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
+      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${castleAppId}"></script>
 
       <script>
         window.onload = function() {
