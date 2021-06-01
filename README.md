@@ -21,13 +21,11 @@ Once you've installed the worker with the default settings, the worker will list
 
 route.
 
-The POST must include a Castle `client_id`. Click [here](https://docs.castle.io/preauth/) to learn more about how to include a Castle `client_id` in a POST.
+The POST must include a Castle `request_token`.
 
 When the worker receives the POST, it will in turn make a POST to Castle, and receive a risk score in return. If the risk score is above the `riskThreshold`, then the worker will respond with a 403. If the risk score is below the `riskThreshold`, the worker will respond with a 200.
 
 (In production, you would simply forward the request to the upstream service rather than respond with a 200.)
-
-A simple way to test the service is to change the `riskThreshold` to 0, and then make a request from a different browser.
 
 ## Prerequisites
 
