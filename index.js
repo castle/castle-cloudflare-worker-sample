@@ -1,29 +1,16 @@
-const castleApiSecret = globalThis.CASTLE_API_SECRET;
-const castleAppId = globalThis.CASTLE_APP_ID;
+const CASTLE_API_SECRET = globalThis.CASTLE_API_SECRET;
+const CASTLE_APP_ID = globalThis.CASTLE_APP_ID;
 
 // Modify the routes according to your use case
 const routes = [
   {
     // Castle event
-    event: '$registration',
-    // function to be executed if the route is matched
-    handler: authenticate,
-    // HTTP method of the matched request
-    method: 'POST',
-    // pathname of the matched request
+    event: '$registration', // function to be executed if the route is matched
+    handler: filterRequest, // HTTP method of the matched request
+    method: 'POST', // pathname of the matched request
     pathname: '/users/sign_up',
   },
 ];
-
-const castleConfig = {
-  riskThreshold: 0.9,
-  url: 'https://api.castle.io/v1/authenticate?include=risk'
-};
-
-const castleAuthHeaders = {
-  Authorization: `Basic ${btoa(`:${castleApiSecret}`)}`,
-  'Content-Type': 'application/json',
-};
 
 /**
  * Generate HTML response
@@ -33,38 +20,40 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${castleAppId}"></script>
+      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
 
       <script>
         window.onload = function() {
           var form = document.getElementById('registration-form');
 
-          form.addEventListener("submit", function(evt) {
+          form.addEventListener('submit', function(evt) {
             evt.preventDefault();
 
-            // Get the ClientID token
-            var clientId = _castle('getClientId');
+            // Get the one-time request token from Castle
+            _castle('createRequestToken').then(function(token){
 
-            // Populate a hidden <input> field named "castle_client_id"
-            var hiddenInput = document.createElement('input');
-            hiddenInput.setAttribute('type', 'hidden');
-            hiddenInput.setAttribute('name', 'castle_client_id');
-            hiddenInput.setAttribute('value', clientId);
+              // Populate a hidden <input> field named 'castle_request_token'
+              var hiddenInput = document.createElement('input');
+              hiddenInput.setAttribute('type', 'hidden');
+              hiddenInput.setAttribute('name', 'castle_request_token');
+              hiddenInput.setAttribute('value', token);
 
-            // Add the "castle_client_id" to the HTML form
-            form.appendChild(hiddenInput);
+              // Add the 'castle_request_token' to the HTML form
+              form.appendChild(hiddenInput);
 
-            form.submit()
+              form.submit();
+            });
+
           });
         }
       </script>
     </head>
 
   <body>
-    <form action = "/users/sign_up" method="POST" id="registration-form">
-      <label for = "username">username</label>
-      <input type = "text" name = "username"><br><br>
-      <input type = "submit" value = "submit">
+    <form action= "/users/sign_up" method="POST" id="registration-form">
+      <label for="email">Email</label>
+      <input type="text" name= "email"><br><br>
+      <input type="submit" value= "submit">
   </body>
   </html>
 `;
@@ -87,28 +76,24 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
 }
 
 /**
- * Return the castle_token fetched from form data
+ * Return the result of the POST /filter call to Castle API
  * @param {Request} request
  */
-async function getCastleTokenFromRequest(request) {
+async function filterRequest(event, request) {
+
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
-  if (formData) {
-    return formData.get('castle_client_id');
-  }
-}
 
-/**
- * Return the result of the POST /authenticate call to Castle API
- * @param {Request} request
- */
-async function authenticate(event, request) {
-  const clientId = await getCastleTokenFromRequest(request);
+  requestToken = formData.get('castle_request_token');
+  email = formData.get('email');
 
   const requestBody = JSON.stringify({
     event,
+    request_token: requestToken,
+    user: {
+      email: email // optional
+    },
     context: {
-      client_id: clientId,
       ip: request.headers.get('CF-Connecting-IP'),
       headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
     },
@@ -116,12 +101,15 @@ async function authenticate(event, request) {
 
   const requestOptions = {
     method: 'POST',
-    headers: castleAuthHeaders,
+    headers: {
+      Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
+      'Content-Type': 'application/json',
+    },
     body: requestBody,
   };
   let response;
   try {
-    response = await fetch(castleConfig.url, requestOptions);
+    response = await fetch('https://api.castle.io/v1/filter', requestOptions);
   } catch (err) {
     console.log(err);
   }
@@ -171,7 +159,7 @@ async function handleRequest(request) {
   const castleResponseJSON = await castleResponse.json();
   const castleResponseJSONString = JSON.stringify(castleResponseJSON);
 
-  if (castleResponseJSON && castleResponseJSON.risk > castleConfig.riskThreshold) {
+  if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
     return new Response(castleResponseJSONString, { status: 403 });
   }
 

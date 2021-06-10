@@ -15,19 +15,16 @@
 The Castle Cloudflare Worker allows you to put Castle's risk engine right on the edge, in a Cloudflare worker.
 
 ## How it works
-Once you've installed the worker with the default settings, the worker will listen for POSTs to the
 
-`/users/sign_up`
+Once you've installed the worker and configured the `CASTLE_API_SECRET` and `CASTLE_APP_ID`, the worker will listen for POSTs to the `/users/sign_up` route.
 
-route.
+The POST must include a Castle `request_token`, and optionally an `email` field that is used map events to existing users.
 
-The POST must include a Castle `client_id`. Click [here](https://docs.castle.io/preauth/) to learn more about how to include a Castle `client_id` in a POST.
+There will be a demo form published at `/` so that you can easily test the API call.
 
 When the worker receives the POST, it will in turn make a POST to Castle, and receive a risk score in return. If the risk score is above the `riskThreshold`, then the worker will respond with a 403. If the risk score is below the `riskThreshold`, the worker will respond with a 200.
 
-(In production, you would simply forward the request to the upstream service rather than respond with a 200.)
-
-A simple way to test the service is to change the `riskThreshold` to 0, and then make a request from a different browser.
+In production, you would simply forward the request to the upstream service rather than respond with a 200.
 
 ## Prerequisites
 
