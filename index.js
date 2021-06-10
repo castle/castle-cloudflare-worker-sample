@@ -1,12 +1,12 @@
-const castleApiSecret = globalThis.CASTLE_API_SECRET;
-const castleAppId = globalThis.CASTLE_APP_ID;
+const CASTLE_API_SECRET = globalThis.CASTLE_API_SECRET;
+const CASTLE_APP_ID = globalThis.CASTLE_APP_ID;
 
 // Modify the routes according to your use case
 const routes = [
   {
     // Castle event
     event: '$registration', // function to be executed if the route is matched
-    handler: filter, // HTTP method of the matched request
+    handler: filterRequest, // HTTP method of the matched request
     method: 'POST', // pathname of the matched request
     pathname: '/users/sign_up',
   },
@@ -20,7 +20,7 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${castleAppId}"></script>
+      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
 
       <script>
         window.onload = function() {
@@ -50,10 +50,10 @@ function generateHTMLResponse() {
     </head>
 
   <body>
-    <form action = "/users/sign_up" method="POST" id="registration-form">
-      <label for = "username">username</label>
-      <input type = "text" name = "username"><br><br>
-      <input type = "submit" value = "submit">
+    <form action= "/users/sign_up" method="POST" id="registration-form">
+      <label for="email">Email</label>
+      <input type="text" name= "email"><br><br>
+      <input type="submit" value= "submit">
   </body>
   </html>
 `;
@@ -76,27 +76,23 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
 }
 
 /**
- * Return the castle_token fetched from form data
- * @param {Request} request
- */
-async function getRequestTokenFromRequest(request) {
-  const clonedRequest = await request.clone();
-  const formData = await clonedRequest.formData();
-  if (formData) {
-    return formData.get('castle_request_token');
-  }
-}
-
-/**
  * Return the result of the POST /filter call to Castle API
  * @param {Request} request
  */
-async function filter(event, request) {
-  const requestToken = await getRequestTokenFromRequest(request);
+async function filterRequest(event, request) {
+
+  const clonedRequest = await request.clone();
+  const formData = await clonedRequest.formData();
+
+  requestToken = formData.get('castle_request_token');
+  email = formData.get('email');
 
   const requestBody = JSON.stringify({
     event,
     request_token: requestToken,
+    user: {
+      email: email // optional
+    },
     context: {
       ip: request.headers.get('CF-Connecting-IP'),
       headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
@@ -106,7 +102,7 @@ async function filter(event, request) {
   const requestOptions = {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`:${castleApiSecret}`)}`,
+      Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
       'Content-Type': 'application/json',
     },
     body: requestBody,
