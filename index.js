@@ -76,11 +76,33 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
 }
 
 /**
+ * Return timeout promise on the base of the promise
+ * @param {number} ms
+ * @param {Promise} promise
+ */
+async function timeout(ms, promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Castle Api Timeout'));
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((reason) => {
+        clearTimeout(timer);
+        reject(reason);
+      });
+  });
+}
+
+/**
  * Return the result of the POST /filter call to Castle API
  * @param {Request} request
  */
 async function filterRequest(event, request) {
-
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
 
@@ -107,28 +129,30 @@ async function filterRequest(event, request) {
     },
     body: requestBody,
   };
-  let response;
+
   try {
-    response = await fetch('https://api.castle.io/v1/filter', requestOptions);
+    const response = await timeout(
+      3000,
+      fetch('https://api.castle.io/v1/filter', requestOptions)
+    );
+    return response.json();
   } catch (err) {
     console.log(err);
+    return;
   }
-  return response;
 }
 
 /**
  * Return matched action or undefined
- * @param {Request} request
+ * @param {string} requestUrl
  */
-async function processRequest(request) {
-  const requestUrl = new URL(request.url);
-
+function findMatchingRoute(requestUrl) {
   for (const route of routes) {
     if (
       requestUrl.pathname === route.pathname &&
       request.method === route.method
     ) {
-      return route.handler(route.event, request);
+      return route;
     }
   }
 }
@@ -145,6 +169,7 @@ async function handleRequest(request) {
   const requestUrl = new URL(request.url);
 
   if (requestUrl.pathname === '/') {
+    // render page with the form
     if (!CASTLE_APP_ID) {
       throw new Error('CASTLE_APP_ID not provided');
     }
@@ -155,11 +180,18 @@ async function handleRequest(request) {
     });
   }
 
-  const castleResponse = await processRequest(request);
-  const castleResponseJSON = await castleResponse.json();
-  const castleResponseJSONString = JSON.stringify(castleResponseJSON);
+  const route = findMatchingRoute(requestUrl);
+
+  if (!route) {
+    // return fetch(request);
+    return new Response('', { status: 403 });
+  }
+
+  const castleResponseJSON = await route.handler(route.event, request);
 
   if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
+    const castleResponseJSONString = JSON.stringify(castleResponseJSON);
+
     return new Response(castleResponseJSONString, { status: 403 });
   }
 
