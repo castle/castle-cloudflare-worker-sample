@@ -76,11 +76,33 @@ function scrubHeaders(requestHeaders, scrubbedHeaders) {
 }
 
 /**
+ * Return timeout promise on the base of the promise
+ * @param {number} ms
+ * @param {Promise} promise
+ */
+async function timeout(ms, promise) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error('Castle Api Timeout'));
+    }, ms);
+
+    promise
+      .then((value) => {
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch((reason) => {
+        clearTimeout(timer);
+        reject(reason);
+      });
+  });
+}
+
+/**
  * Return the result of the POST /filter call to Castle API
  * @param {Request} request
  */
 async function filterRequest(event, request) {
-
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
 
@@ -107,13 +129,16 @@ async function filterRequest(event, request) {
     },
     body: requestBody,
   };
-  let response;
+
   try {
-    response = await fetch('https://api.castle.io/v1/filter', requestOptions);
+    const response = await timeout(
+      3000,
+      fetch('https://api.castle.io/v1/filter', requestOptions)
+    );
     return response.json();
   } catch (err) {
     console.log(err);
-    return response;
+    return;
   }
 }
 
@@ -159,7 +184,7 @@ async function handleRequest(request) {
 
   if (!route) {
     // return fetch(request);
-    return new Response("", { status: 403 });
+    return new Response('', { status: 403 });
   }
 
   const castleResponseJSON = await route.handler(route.event, request);
