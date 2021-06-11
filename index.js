@@ -110,10 +110,11 @@ async function filterRequest(event, request) {
   let response;
   try {
     response = await fetch('https://api.castle.io/v1/filter', requestOptions);
+    return response.json();
   } catch (err) {
     console.log(err);
+    return response;
   }
-  return response;
 }
 
 /**
@@ -161,8 +162,7 @@ async function handleRequest(request) {
     return new Response("", { status: 403 });
   }
 
-  const castleResponse = await route.handler(route.event, request);
-  const castleResponseJSON = await castleResponse.json();
+  const castleResponseJSON = await route.handler(route.event, request);
 
   if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
     const castleResponseJSONString = JSON.stringify(castleResponseJSON);
