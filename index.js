@@ -118,17 +118,15 @@ async function filterRequest(event, request) {
 
 /**
  * Return matched action or undefined
- * @param {Request} request
+ * @param {string} requestUrl
  */
-async function processRequest(request) {
-  const requestUrl = new URL(request.url);
-
+function findMatchingRoute(requestUrl) {
   for (const route of routes) {
     if (
       requestUrl.pathname === route.pathname &&
       request.method === route.method
     ) {
-      return route.handler(route.event, request);
+      return route;
     }
   }
 }
@@ -145,6 +143,7 @@ async function handleRequest(request) {
   const requestUrl = new URL(request.url);
 
   if (requestUrl.pathname === '/') {
+    // render page with the form
     if (!CASTLE_APP_ID) {
       throw new Error('CASTLE_APP_ID not provided');
     }
@@ -155,11 +154,19 @@ async function handleRequest(request) {
     });
   }
 
-  const castleResponse = await processRequest(request);
+  const route = findMatchingRoute(requestUrl);
+
+  if (!route) {
+    // return fetch(request);
+    return new Response("", { status: 403 });
+  }
+
+  const castleResponse = await route.handler(route.event, request);
   const castleResponseJSON = await castleResponse.json();
-  const castleResponseJSONString = JSON.stringify(castleResponseJSON);
 
   if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
+    const castleResponseJSONString = JSON.stringify(castleResponseJSON);
+
     return new Response(castleResponseJSONString, { status: 403 });
   }
 
