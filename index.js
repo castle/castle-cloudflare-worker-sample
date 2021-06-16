@@ -6,9 +6,8 @@ const routes = [
   {
     // Castle event
     event: '$registration', // function to be executed if the route is matched
-    handler: filterRequest, // HTTP method of the matched request
-    method: 'POST', // pathname of the matched request
-    pathname: '/users/sign_up',
+    method: 'POST', // HTTP method of the matched request
+    pathname: '/users/sign_up', // pathname of the matched request
   },
 ];
 
@@ -62,10 +61,11 @@ function generateHTMLResponse() {
 /**
  * Return prefiltered request headers
  * @param {Headers} requestHeaders
- * @param {string[]} scrubbedHeaders
  */
-function scrubHeaders(requestHeaders, scrubbedHeaders) {
+function scrubHeaders(requestHeaders) {
+  const scrubbedHeaders = ['cookie', 'authorization'];
   const headersObject = Object.fromEntries(requestHeaders);
+
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
     const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
@@ -105,26 +105,29 @@ async function timeout(ms, promise) {
 async function filterRequest(event, request) {
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
+  let user = {};
 
   requestToken = formData.get('castle_request_token');
-  email = formData.get('email');
+
+  if (formData.get('email')) {
+    user.email = formData.get('email');
+  }
 
   const requestBody = JSON.stringify({
     event,
     request_token: requestToken,
-    user: {
-      email: email // optional
-    },
+    user: user,
     context: {
       ip: request.headers.get('CF-Connecting-IP'),
-      headers: scrubHeaders(request.headers, ['cookie', 'authorization']),
+      headers: scrubHeaders(request.headers),
     },
   });
 
+  const authorizationString = btoa(`:${CASTLE_API_SECRET}`);
   const requestOptions = {
     method: 'POST',
     headers: {
-      Authorization: `Basic ${btoa(`:${CASTLE_API_SECRET}`)}`,
+      Authorization: `Basic ${authorizationString}`,
       'Content-Type': 'application/json',
     },
     body: requestBody,
@@ -137,8 +140,13 @@ async function filterRequest(event, request) {
     );
     return response.json();
   } catch (err) {
-    console.log(err);
-    return;
+    // customized failover response
+    return {
+      policy: {
+        action: 'allow',
+      },
+      failover: true,
+    };
   }
 }
 
@@ -187,7 +195,7 @@ async function handleRequest(request) {
     return new Response('', { status: 403 });
   }
 
-  const castleResponseJSON = await route.handler(route.event, request);
+  const castleResponseJSON = await filterRequest(route.event, request);
 
   if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
     const castleResponseJSONString = JSON.stringify(castleResponseJSON);

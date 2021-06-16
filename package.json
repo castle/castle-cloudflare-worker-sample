@@ -1,7 +1,7 @@
 {
   "private": true,
   "name": "castle-cloudflare-worker-sample",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Castle Cloudflare Worker Sample",
   "main": "index.js",
   "scripts": {
