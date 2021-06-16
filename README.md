@@ -5,7 +5,6 @@
   <h1>Castle Cloudflare Worker Sample</h1>
 </div>
 <div align="center">
-  <image alt="Build status" src="https://img.shields.io/github/workflow/status/castle/castle-cloudflare-worker-sample/Build"/>
   <image alt="Package version" src="https://img.shields.io/github/package-json/v/castle/castle-cloudflare-worker-sample"/>
   <image alt="License" src="https://img.shields.io/github/license/castle/castle-cloudflare-worker-sample"/>
 </div>
