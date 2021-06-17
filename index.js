@@ -19,7 +19,7 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="https://d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
+      <script src="//d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
 
       <script>
         window.onload = function() {
