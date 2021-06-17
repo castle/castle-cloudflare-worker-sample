@@ -1,12 +1,12 @@
 {
   "private": true,
   "name": "castle-cloudflare-worker-sample",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Castle Cloudflare Worker Sample",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+  "author": {
+    "name": "castle.io",
+    "url": "https://castle.io"
   },
-  "author": "castle.io",
   "license": "MIT"
 }
