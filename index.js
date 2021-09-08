@@ -19,37 +19,11 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="//d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
-
-      <script>
-        window.onload = function() {
-          var form = document.getElementById('registration-form');
-
-          form.addEventListener('submit', function(evt) {
-            evt.preventDefault();
-
-            // Get the one-time request token from Castle
-            _castle('createRequestToken').then(function(token){
-
-              // Populate a hidden <input> field named 'castle_request_token'
-              var hiddenInput = document.createElement('input');
-              hiddenInput.setAttribute('type', 'hidden');
-              hiddenInput.setAttribute('name', 'castle_request_token');
-              hiddenInput.setAttribute('value', token);
-
-              // Add the 'castle_request_token' to the HTML form
-              form.appendChild(hiddenInput);
-
-              form.submit();
-            });
-
-          });
-        }
-      </script>
+      <script src="//cdn.castle.io/v2/castle.js?${CASTLE_APP_ID}"></script>
     </head>
 
   <body>
-    <form action= "/users/sign_up" method="POST" id="registration-form">
+    <form action= "/users/sign_up" method="POST" id="registration-form" onsubmit="_castle('onFormSubmit', event)">
       <label for="email">Email</label>
       <input type="text" name= "email"><br><br>
       <input type="submit" value= "submit">
