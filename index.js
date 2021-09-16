@@ -7,8 +7,8 @@ const routes = [
     // Castle event
     event: '$registration', // function to be executed if the route is matched
     method: 'POST', // HTTP method of the matched request
-    pathname: '/users/sign_up', // pathname of the matched request
-  },
+    pathname: '/users/sign_up' // pathname of the matched request
+  }
 ];
 
 /**
@@ -44,7 +44,7 @@ function scrubHeaders(requestHeaders) {
     const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
       ...accumulator,
-      [headerKey]: isScrubbed ? true : headersObject[headerKey],
+      [headerKey]: isScrubbed ? true : headersObject[headerKey]
     };
   }, {});
 }
@@ -93,8 +93,8 @@ async function filterRequest(event, request) {
     user: user,
     context: {
       ip: request.headers.get('CF-Connecting-IP'),
-      headers: scrubHeaders(request.headers),
-    },
+      headers: scrubHeaders(request.headers)
+    }
   });
 
   const authorizationString = btoa(`:${CASTLE_API_SECRET}`);
@@ -102,9 +102,9 @@ async function filterRequest(event, request) {
     method: 'POST',
     headers: {
       Authorization: `Basic ${authorizationString}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: requestBody,
+    body: requestBody
   };
 
   try {
@@ -112,14 +112,18 @@ async function filterRequest(event, request) {
       3000,
       fetch('https://api.castle.io/v1/filter', requestOptions)
     );
-    return response.json();
+    if (response.status === 201) {
+      return await response.json();
+    } else {
+      throw 'castle error';
+    }
   } catch (err) {
     // customized failover response
     return {
       policy: {
-        action: 'allow',
+        action: 'allow'
       },
-      failover: true,
+      failover: true
     };
   }
 }
@@ -127,13 +131,11 @@ async function filterRequest(event, request) {
 /**
  * Return matched action or undefined
  * @param {string} requestUrl
+ * @param {string} method
  */
-function findMatchingRoute(requestUrl) {
+function findMatchingRoute(requestUrl, method) {
   for (const route of routes) {
-    if (
-      requestUrl.pathname === route.pathname &&
-      request.method === route.method
-    ) {
+    if (requestUrl.pathname === route.pathname && method === route.method) {
       return route;
     }
   }
@@ -157,12 +159,12 @@ async function handleRequest(request) {
     }
     return new Response(generateHTMLResponse(), {
       headers: {
-        'content-type': 'text/html;charset=UTF-8',
-      },
+        'content-type': 'text/html;charset=UTF-8'
+      }
     });
   }
 
-  const route = findMatchingRoute(requestUrl);
+  const route = findMatchingRoute(requestUrl, request.method);
 
   if (!route) {
     // return fetch(request);
@@ -170,16 +172,15 @@ async function handleRequest(request) {
   }
 
   const castleResponseJSON = await filterRequest(route.event, request);
+  const castleResponseJSONString = JSON.stringify(castleResponseJSON);
 
-  if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
-    const castleResponseJSONString = JSON.stringify(castleResponseJSON);
-
+  if (castleResponseJSON.policy.action === 'deny') {
     return new Response(castleResponseJSONString, { status: 403 });
+  } else {
+    // Respond with result fetched from Castle API or fetch the request
+    // return fetch(request);
+    return new Response(castleResponseJSONString, { status: 200 });
   }
-
-  // Respond with result fetched from Castle API or fetch the request
-  // return fetch(request);
-  return new Response(castleResponseJSONString, { status: 200 });
 }
 
 addEventListener('fetch', (event) => {
