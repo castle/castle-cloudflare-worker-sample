@@ -7,8 +7,8 @@ const routes = [
     // Castle event
     event: '$registration', // function to be executed if the route is matched
     method: 'POST', // HTTP method of the matched request
-    pathname: '/users/sign_up', // pathname of the matched request
-  },
+    pathname: '/users/sign_up' // pathname of the matched request
+  }
 ];
 
 /**
@@ -19,37 +19,11 @@ function generateHTMLResponse() {
   <html>
     <head>
       <link rel="icon" href="data:,">
-      <script src="//d2t77mnxyo7adj.cloudfront.net/v1/c.js?${CASTLE_APP_ID}"></script>
-
-      <script>
-        window.onload = function() {
-          var form = document.getElementById('registration-form');
-
-          form.addEventListener('submit', function(evt) {
-            evt.preventDefault();
-
-            // Get the one-time request token from Castle
-            _castle('createRequestToken').then(function(token){
-
-              // Populate a hidden <input> field named 'castle_request_token'
-              var hiddenInput = document.createElement('input');
-              hiddenInput.setAttribute('type', 'hidden');
-              hiddenInput.setAttribute('name', 'castle_request_token');
-              hiddenInput.setAttribute('value', token);
-
-              // Add the 'castle_request_token' to the HTML form
-              form.appendChild(hiddenInput);
-
-              form.submit();
-            });
-
-          });
-        }
-      </script>
+      <script src="//cdn.castle.io/v2/castle.js?${CASTLE_APP_ID}"></script>
     </head>
 
   <body>
-    <form action= "/users/sign_up" method="POST" id="registration-form">
+    <form action= "/users/sign_up" method="POST" id="registration-form" onsubmit="_castle('onFormSubmit', event)">
       <label for="email">Email</label>
       <input type="text" name= "email"><br><br>
       <input type="submit" value= "submit">
@@ -70,7 +44,7 @@ function scrubHeaders(requestHeaders) {
     const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
       ...accumulator,
-      [headerKey]: isScrubbed ? true : headersObject[headerKey],
+      [headerKey]: isScrubbed ? true : headersObject[headerKey]
     };
   }, {});
 }
@@ -119,8 +93,8 @@ async function filterRequest(event, request) {
     user: user,
     context: {
       ip: request.headers.get('CF-Connecting-IP'),
-      headers: scrubHeaders(request.headers),
-    },
+      headers: scrubHeaders(request.headers)
+    }
   });
 
   const authorizationString = btoa(`:${CASTLE_API_SECRET}`);
@@ -128,9 +102,9 @@ async function filterRequest(event, request) {
     method: 'POST',
     headers: {
       Authorization: `Basic ${authorizationString}`,
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: requestBody,
+    body: requestBody
   };
 
   try {
@@ -138,14 +112,18 @@ async function filterRequest(event, request) {
       3000,
       fetch('https://api.castle.io/v1/filter', requestOptions)
     );
-    return response.json();
+    if (response.status === 201) {
+      return await response.json();
+    } else {
+      throw 'castle error';
+    }
   } catch (err) {
     // customized failover response
     return {
       policy: {
-        action: 'allow',
+        action: 'allow'
       },
-      failover: true,
+      failover: true
     };
   }
 }
@@ -153,13 +131,11 @@ async function filterRequest(event, request) {
 /**
  * Return matched action or undefined
  * @param {string} requestUrl
+ * @param {string} method
  */
-function findMatchingRoute(requestUrl) {
+function findMatchingRoute(requestUrl, method) {
   for (const route of routes) {
-    if (
-      requestUrl.pathname === route.pathname &&
-      request.method === route.method
-    ) {
+    if (requestUrl.pathname === route.pathname && method === route.method) {
       return route;
     }
   }
@@ -183,12 +159,12 @@ async function handleRequest(request) {
     }
     return new Response(generateHTMLResponse(), {
       headers: {
-        'content-type': 'text/html;charset=UTF-8',
-      },
+        'content-type': 'text/html;charset=UTF-8'
+      }
     });
   }
 
-  const route = findMatchingRoute(requestUrl);
+  const route = findMatchingRoute(requestUrl, request.method);
 
   if (!route) {
     // return fetch(request);
@@ -196,16 +172,15 @@ async function handleRequest(request) {
   }
 
   const castleResponseJSON = await filterRequest(route.event, request);
+  const castleResponseJSONString = JSON.stringify(castleResponseJSON);
 
-  if (castleResponseJSON && castleResponseJSON.policy.action === 'deny') {
-    const castleResponseJSONString = JSON.stringify(castleResponseJSON);
-
+  if (castleResponseJSON.policy.action === 'deny') {
     return new Response(castleResponseJSONString, { status: 403 });
+  } else {
+    // Respond with result fetched from Castle API or fetch the request
+    // return fetch(request);
+    return new Response(castleResponseJSONString, { status: 200 });
   }
-
-  // Respond with result fetched from Castle API or fetch the request
-  // return fetch(request);
-  return new Response(castleResponseJSONString, { status: 200 });
 }
 
 addEventListener('fetch', (event) => {
