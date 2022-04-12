@@ -5,7 +5,7 @@ const routes = [
   {
     eventType: "$registration", // castle event type
     method: "POST", // HTTP method of the matched request
-    pathname: "/signup", // pathname of the matched request
+    pathname: "/users/sign_up", // pathname of the matched request
   },
 ];
 
