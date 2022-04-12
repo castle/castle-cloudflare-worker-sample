@@ -4,6 +4,7 @@ const CASTLE_API_SECRET = globalThis.CASTLE_API_SECRET;
 const routes = [
   {
     eventType: "$registration", // castle event type
+    eventStatus: "$attempted", // castle event status
     method: "POST", // HTTP method of the matched request
     pathname: "/users/sign_up", // pathname of the matched request
   },
@@ -58,7 +59,7 @@ const TIMEOUT = 2000;
  * Return the result of the POST /filter call to Castle API
  * @param {Request} request
  */
-async function filterRequest(eventType, request) {
+async function filterRequest(eventType, eventStatus, request) {
   const clonedRequest = await request.clone();
   const formData = await clonedRequest.formData();
   let user = {};
@@ -76,6 +77,7 @@ async function filterRequest(eventType, request) {
 
   const requestBody = JSON.stringify({
     type: eventType,
+    status: eventStatus,
     request_token: requestToken,
     user: user,
     properties: properties,
@@ -143,7 +145,11 @@ async function handleRequest(request) {
       return fetch(request);
     }
 
-    const castleResponseJSON = await filterRequest(route.eventType, request);
+    const castleResponseJSON = await filterRequest(
+      route.eventType,
+      route.eventStatus,
+      request
+    );
 
     if (castleResponseJSON && castleResponseJSON.policy.action === "deny") {
       // defined what to do when deny happens

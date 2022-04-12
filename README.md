@@ -25,7 +25,7 @@ When the worker receives the POST, it will in turn make a POST to Castle, and re
 
 You'll need a Castle account and a Cloudflare account to get started.
 
-Additionally you need to have castle script integrated with your registration form [https://docs.castle.io/docs/sdk-browser#configuration](https://docs.castle.io/docs/sdk-browser#configuration)
+Additionally you need to [install the Castle.js script](https://docs.castle.io/docs/sdk-browser#configuration), which will be used to generate a unique "request token" for each request to your server. Without this request token, requests to Castle's API will be rejected.
 
 ### Castle
 
