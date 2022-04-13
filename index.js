@@ -13,6 +13,18 @@ const routes = [
 // headers to filter out
 const SCRUBBED_HEADERS = ["cookie", "authorization"];
 
+class InvalidRequestTokenError extends Error {
+  constructor(message) {
+    super(message);
+
+    // assign the error class name in your custom error (as a shortcut)
+    this.name = this.constructor.name;
+
+    // capturing the stack trace keeps the reference to your error class
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
 /**
  * Return prefiltered request headers
  * @param {Headers} requestHeaders
@@ -104,12 +116,18 @@ async function filterRequest(eventType, eventStatus, request) {
     );
     if (response.status === 201) {
       return await response.json();
+    } else if (response.status === 422) {
+      const body = await response.json();
+      if (body && body.type === "invalid_request_token") {
+        throw new InvalidRequestTokenError(body.message);
+      } else {
+        throw "invalid params";
+      }
     } else {
       throw "castle error";
     }
   } catch (err) {
-    // log or rethrow error if needed here
-    return;
+    throw err;
   }
 }
 
@@ -157,11 +175,16 @@ async function handleRequest(request) {
     }
 
     // proceed with the original fetch
-    return await fetch(request);
-  } catch (error) {
-    // log additional errors here
-    // just pass the promise in case of any error
     return fetch(request);
+  } catch (err) {
+    if (err instanceof InvalidRequestTokenError) {
+      // IMPLEMENT: Deny attempt. Likely a bad actor
+      // rethrow error to handle in the further catch
+      return fetch(request);
+    } else {
+      // just pass the promise in case of any error
+      return fetch(request);
+    }
   }
 }
 
