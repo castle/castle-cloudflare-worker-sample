@@ -147,6 +147,10 @@ function findMatchingRoute(request) {
   }
 }
 
+function denyResponse(request) {
+  return Response.redirect(`${request.url}`);
+}
+
 /**
  * Process the received request
  * @param {Request} request
@@ -160,7 +164,7 @@ async function handleRequest(request) {
     const route = findMatchingRoute(request);
 
     if (!route) {
-      return fetch(request);
+      return await fetch(request);
     }
 
     const castleResponseJSON = await filterRequest(
@@ -171,7 +175,7 @@ async function handleRequest(request) {
 
     if (castleResponseJSON && castleResponseJSON.policy.action === "deny") {
       // defined what to do when deny happens
-      return Response.redirect(`${request.url}`);
+      return denyResponse(request);
     }
 
     // proceed with the original fetch
@@ -180,7 +184,7 @@ async function handleRequest(request) {
     if (err instanceof InvalidRequestTokenError) {
       // IMPLEMENT: Deny attempt. Likely a bad actor
       // rethrow error to handle in the further catch
-      return fetch(request);
+      return denyResponse(request);
     } else {
       // just pass the promise in case of any error
       return fetch(request);
