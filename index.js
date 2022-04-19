@@ -46,11 +46,6 @@ const CONFIG = {
       user.email = formData.get("email");
     }
 
-    // just for demo purposes generate sample id
-    if (trigger.endpoint === "log") {
-      user.id = "demo";
-    }
-
     return user;
   },
 };
