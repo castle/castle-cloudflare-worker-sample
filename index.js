@@ -77,7 +77,10 @@ async function filterRequest(eventType, eventStatus, request) {
   let user = {};
   let properties = {};
 
+  // here we get request token from the form data
   const requestToken = formData.get("castle_request_token");
+  // but if token is sent differently eg in headers you can replace this line with
+  // const requestToken = request.headers.get("Castle-Request-Token")
 
   // here you can include form data as a part of the event metadata
   // if (formData.get('email')) {
@@ -147,19 +150,21 @@ function findMatchingRoute(request) {
   }
 }
 
+// IMPLEMENT: Deny attempt
+async function denyAttempt(request) {
+  return new Response(null, { status: 403, statusText: "denied" });
+}
+
 /**
  * Process the received request
  * @param {Request} request
  */
 async function handleRequest(request) {
-  if (!CASTLE_API_SECRET) {
-    throw new Error("CASTLE_API_SECRET not provided");
-  }
-
   try {
     const route = findMatchingRoute(request);
 
     if (!route) {
+      // returns the original fetch promise
       return fetch(request);
     }
 
@@ -171,23 +176,25 @@ async function handleRequest(request) {
 
     if (castleResponseJSON && castleResponseJSON.policy.action === "deny") {
       // defined what to do when deny happens
-      return Response.redirect(`${request.url}`);
+      return denyAttempt(request);
     }
 
-    // proceed with the original fetch
+    // returns the original fetch promise
     return fetch(request);
   } catch (err) {
     if (err instanceof InvalidRequestTokenError) {
-      // IMPLEMENT: Deny attempt. Likely a bad actor
-      // rethrow error to handle in the further catch
-      return fetch(request);
+      // Deny attempt. Likely a bad actor
+      return denyAttempt(request);
     } else {
-      // just pass the promise in case of any error
+      // just pass the original fetch promise in case of any other error
       return fetch(request);
     }
   }
 }
 
 addEventListener("fetch", (event) => {
+  if (!CASTLE_API_SECRET) {
+    throw new Error("CASTLE_API_SECRET not provided");
+  }
   event.respondWith(handleRequest(event.request));
 });
