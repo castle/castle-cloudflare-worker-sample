@@ -10,8 +10,9 @@ const CONFIG = {
       },
       route: {
         method: "POST", // HTTP method of the matched request
-        pathname: "/users/sign_up", // pathname of the matched request
+        pathname: "/signup", // pathname of the matched request
       },
+      endpoint: "filter",
     },
     {
       event: {
@@ -22,6 +23,7 @@ const CONFIG = {
         method: "GET",
         pathname: "/",
       },
+      endpoint: "log",
     },
   ],
   timeout: 2000, // castle api timeout
@@ -36,6 +38,20 @@ const CONFIG = {
     }
     // but if token is sent differently eg in headers you can replace this line with
     // return headers.get("Castle-Request-Token");
+  },
+  extractUserData: function (formData, headers, trigger) {
+    let user = {};
+    // here we get request token from the form data
+    if (formData && formData.get("email")) {
+      user.email = formData.get("email");
+    }
+
+    // just for demo purposes generate sample id
+    if (trigger.endpoint === "log") {
+      user.id = "demo";
+    }
+
+    return user;
   },
 };
 
@@ -59,7 +75,7 @@ function scrubHeaders(requestHeaders) {
   const headersObject = Object.fromEntries(requestHeaders);
 
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
-    const isScrubbed = scrubbedHeaders.includes(headerKey.toLowerCase());
+    const isScrubbed = CONFIG.scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
       ...accumulator,
       [headerKey]: isScrubbed ? true : headersObject[headerKey],
@@ -95,41 +111,32 @@ async function timeout(ms, promise) {
  * @param {Object} trigger
  * @param {Request} request
  */
-async function filterRequest(trigger, request) {
+async function performRequest(trigger, request) {
   const clonedRequest = await request.clone();
   let formData;
   try {
     formData = await clonedRequest.formData();
   } catch {}
 
-  let user = {};
-  let properties = {};
-
   const requestToken = CONFIG.extractRequestToken(formData, request.headers);
-
-  // here you can include additional form data as a part of the event metadata if needed
-  // if (formData.get('email')) {
-  //  user.email = formData.get('email');
-  // }
-  // if (formData.get('company')) {
-  //   properties.company_name = formData.get('company');
-  // }
 
   const requestBody = {
     type: trigger.event.type,
-    request_token: requestToken,
-    user: user,
-    properties: properties,
+    user: CONFIG.extractUserData(formData, request.headers, trigger),
+    properties: {},
     context: {
       ip: request.headers.get("CF-Connecting-IP"),
       headers: scrubHeaders(request.headers),
     },
   };
+  if (requestToken) {
+    requestBody.request_token = requestToken;
+  }
   if (trigger.event.status) {
-    payload.status = trigger.event.status;
+    requestBody.status = trigger.event.status;
   }
   if (trigger.event.name) {
-    payload.name = trigger.event.name;
+    requestBody.name = trigger.event.name;
   }
 
   const authorizationString = btoa(`:${CASTLE_API_SECRET}`);
@@ -145,9 +152,13 @@ async function filterRequest(trigger, request) {
   try {
     const response = await timeout(
       CONFIG.timeout,
-      fetch("https://api.castle.io/v1/filter", requestOptions)
+      fetch(`https://api.castle.io/v1/${trigger.endpoint}`, requestOptions)
     );
     if (response.status === 201) {
+      if (trigger.endpoint === "log") {
+        return;
+      }
+
       return await response.json();
     } else if (response.status === 422) {
       const body = await response.json();
@@ -193,9 +204,9 @@ async function handleRequest(request) {
       return fetch(request);
     }
 
-    const castleResponseJSON = await filterRequest(trigger, request);
+    const castleResponse = await performRequest(trigger, request);
 
-    if (castleResponseJSON && castleResponseJSON.policy.action === "deny") {
+    if (castleResponse && castleResponse.policy.action === "deny") {
       // defined what to do when deny happens
       return CONFIG.denyResponse(request, castleResponseJSON);
     }
