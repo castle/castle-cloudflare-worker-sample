@@ -1,17 +1,59 @@
 const CASTLE_API_SECRET = globalThis.CASTLE_API_SECRET;
 
-// Modify the routes according to your use case
-const routes = [
-  {
-    eventType: "$registration", // castle event type
-    eventStatus: "$attempted", // castle event status
-    method: "POST", // HTTP method of the matched request
-    pathname: "/users/sign_up", // pathname of the matched request
+// Modify config according to your use case
+const CONFIG = {
+  triggers: [
+    {
+      event: {
+        type: "$registration", // castle event type
+        status: "$attempted", // castle event status
+      },
+      route: {
+        method: "POST", // HTTP method of the matched request
+        pathname: "/signup", // pathname of the matched request
+      },
+      endpoint: "filter",
+    },
+    {
+      event: {
+        type: "$custom",
+        name: "Start Browsing", // castle event name
+      },
+      route: {
+        method: "GET",
+        pathname: "/",
+      },
+      endpoint: "log",
+    },
+  ],
+  timeout: 2000, // castle api timeout
+  scrubbedHeaders: ["cookie", "authorization"], // headers to filter out
+  denyResponse: function (request, castleData) {
+    return new Response(null, { status: 403, statusText: "denied" });
   },
-];
+  extractRequestToken: function (formData, headers) {
+    // here we get request token from the form data
+    if (formData) {
+      return formData.get("castle_request_token");
+    }
+    // but if token is sent differently eg in headers you can replace this line with
+    // return headers.get("Castle-Request-Token");
+  },
+  extractUserData: function (formData, headers, trigger) {
+    let user = {};
+    // here we get request token from the form data
+    if (formData && formData.get("email")) {
+      user.email = formData.get("email");
+    }
 
-// headers to filter out
-const SCRUBBED_HEADERS = ["cookie", "authorization"];
+    // just for demo purposes generate sample id
+    if (trigger.endpoint === "log") {
+      user.id = "demo";
+    }
+
+    return user;
+  },
+};
 
 class InvalidRequestTokenError extends Error {
   constructor(message) {
@@ -33,7 +75,7 @@ function scrubHeaders(requestHeaders) {
   const headersObject = Object.fromEntries(requestHeaders);
 
   return Object.keys(headersObject).reduce((accumulator, headerKey) => {
-    const isScrubbed = SCRUBBED_HEADERS.includes(headerKey.toLowerCase());
+    const isScrubbed = CONFIG.scrubbedHeaders.includes(headerKey.toLowerCase());
     return {
       ...accumulator,
       [headerKey]: isScrubbed ? true : headersObject[headerKey],
@@ -64,40 +106,38 @@ async function timeout(ms, promise) {
   });
 }
 
-// castle api timeout
-const TIMEOUT = 2000;
-
 /**
  * Return the result of the POST /filter call to Castle API
+ * @param {Object} trigger
  * @param {Request} request
  */
-async function filterRequest(eventType, eventStatus, request) {
+async function performRequest(trigger, request) {
   const clonedRequest = await request.clone();
-  const formData = await clonedRequest.formData();
-  let user = {};
-  let properties = {};
+  let formData;
+  try {
+    formData = await clonedRequest.formData();
+  } catch {}
 
-  const requestToken = formData.get("castle_request_token");
+  const requestToken = CONFIG.extractRequestToken(formData, request.headers);
 
-  // here you can include form data as a part of the event metadata
-  // if (formData.get('email')) {
-  //  user.email = formData.get('email');
-  // }
-  // if (formData.get('company')) {
-  //   properties.company_name = formData.get('company');
-  // }
-
-  const requestBody = JSON.stringify({
-    type: eventType,
-    status: eventStatus,
-    request_token: requestToken,
-    user: user,
-    properties: properties,
+  const requestBody = {
+    type: trigger.event.type,
+    user: CONFIG.extractUserData(formData, request.headers, trigger),
+    properties: {},
     context: {
       ip: request.headers.get("CF-Connecting-IP"),
       headers: scrubHeaders(request.headers),
     },
-  });
+  };
+  if (requestToken) {
+    requestBody.request_token = requestToken;
+  }
+  if (trigger.event.status) {
+    requestBody.status = trigger.event.status;
+  }
+  if (trigger.event.name) {
+    requestBody.name = trigger.event.name;
+  }
 
   const authorizationString = btoa(`:${CASTLE_API_SECRET}`);
   const requestOptions = {
@@ -106,15 +146,19 @@ async function filterRequest(eventType, eventStatus, request) {
       Authorization: `Basic ${authorizationString}`,
       "Content-Type": "application/json",
     },
-    body: requestBody,
+    body: JSON.stringify(requestBody),
   };
 
   try {
     const response = await timeout(
-      TIMEOUT,
-      fetch("https://api.castle.io/v1/filter", requestOptions)
+      CONFIG.timeout,
+      fetch(`https://api.castle.io/v1/${trigger.endpoint}`, requestOptions)
     );
     if (response.status === 201) {
+      if (trigger.endpoint === "log") {
+        return;
+      }
+
       return await response.json();
     } else if (response.status === 422) {
       const body = await response.json();
@@ -137,12 +181,12 @@ async function filterRequest(eventType, eventStatus, request) {
  */
 function findMatchingRoute(request) {
   const requestUrl = new URL(request.url);
-  for (const route of routes) {
+  for (const trigger of CONFIG.triggers) {
     if (
-      requestUrl.pathname === route.pathname &&
-      request.method === route.method
+      requestUrl.pathname === trigger.route.pathname &&
+      request.method === trigger.route.method
     ) {
-      return route;
+      return trigger;
     }
   }
 }
@@ -152,42 +196,37 @@ function findMatchingRoute(request) {
  * @param {Request} request
  */
 async function handleRequest(request) {
-  if (!CASTLE_API_SECRET) {
-    throw new Error("CASTLE_API_SECRET not provided");
-  }
-
   try {
-    const route = findMatchingRoute(request);
+    const trigger = findMatchingRoute(request);
 
-    if (!route) {
+    if (!trigger) {
+      // returns the original fetch promise
       return fetch(request);
     }
 
-    const castleResponseJSON = await filterRequest(
-      route.eventType,
-      route.eventStatus,
-      request
-    );
+    const castleResponse = await performRequest(trigger, request);
 
-    if (castleResponseJSON && castleResponseJSON.policy.action === "deny") {
+    if (castleResponse && castleResponse.policy.action === "deny") {
       // defined what to do when deny happens
-      return Response.redirect(`${request.url}`);
+      return CONFIG.denyResponse(request, castleResponseJSON);
     }
 
-    // proceed with the original fetch
+    // returns the original fetch promise
     return fetch(request);
   } catch (err) {
     if (err instanceof InvalidRequestTokenError) {
-      // IMPLEMENT: Deny attempt. Likely a bad actor
-      // rethrow error to handle in the further catch
-      return fetch(request);
+      // Deny attempt. Likely a bad actor
+      return CONFIG.denyResponse(request, null);
     } else {
-      // just pass the promise in case of any error
+      // just pass the original fetch promise in case of any other error
       return fetch(request);
     }
   }
 }
 
 addEventListener("fetch", (event) => {
+  if (!CASTLE_API_SECRET) {
+    throw new Error("CASTLE_API_SECRET not provided");
+  }
   event.respondWith(handleRequest(event.request));
 });
