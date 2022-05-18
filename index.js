@@ -203,7 +203,7 @@ async function handleRequest(request) {
 
     if (castleResponse && castleResponse.policy.action === "deny") {
       // defined what to do when deny happens
-      return CONFIG.denyResponse(request, castleResponseJSON);
+      return CONFIG.denyResponse(request, castleResponse);
     }
 
     // returns the original fetch promise
